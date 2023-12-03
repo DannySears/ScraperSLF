@@ -42,6 +42,30 @@ def main():
     searchButton = driver.find_element(By.ID, "SearchSubmit")
     searchButton.click()
 
+    tables = driver.find_elements(By.TAG_NAME, 'table')
+
+
+    # Check if there are at least four tables
+    if len(tables) >= 4:
+        # Select the fourth table
+        seventh_table = tables[6]
+
+        # Find all rows in the fourth table
+        rows = seventh_table.find_elements(By.TAG_NAME, 'tr')
+        print("Number of rows found:", len(rows))
+
+        # Iterate through each row
+        for row in rows[2:]:
+            # Find the first 'td' element in this row
+            first_td = row.find_element(By.TAG_NAME, 'td')
+        
+            # Find the 'a' tag within this 'td' and get its text
+            links = first_td.find_elements(By.TAG_NAME, 'a')  # Use find_elements (plural)
+
+            if links:
+                link_text = links[0].text  # Get text of the first link, if it exists
+                print(link_text)
+
 
 
     time.sleep(10)
