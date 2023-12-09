@@ -104,13 +104,14 @@ def main():
     df.to_excel(fileName, index=False, engine='openpyxl')  
 
     # Change columns width
-    workbook = load_workbook(filename=fileName)
+    workbook = load_workbook(fileName)
     sheet = workbook.active
     sheet.column_dimensions['A'].width = 33
     sheet.column_dimensions['B'].width = 40
     sheet.column_dimensions['C'].width = 56
     sheet.column_dimensions['D'].width = 25
     sheet.column_dimensions['E'].width = 10
+    workbook.save(fileName)
 
     # Output datapath to terminal
     excel_file_path = os.path.abspath(fileName)
