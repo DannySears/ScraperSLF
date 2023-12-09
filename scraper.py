@@ -7,6 +7,17 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 import datetime
+import pandas as pd
+from dataclasses import dataclass
+from openpyxl import load_workbook
+
+@dataclass
+class Case:
+    name: str
+    address: str
+    charge: str
+    case_number: str
+    attorney_present: bool  # True if attorney is present, False otherwise
 
 def main():
     driver_path = os.path.join(os.path.dirname(__file__), 'drivers', 'chromedriver')
@@ -16,16 +27,16 @@ def main():
     driver.get('https://cijspub.co.collin.tx.us/PublicAccess/CaseDetail.aspx?CaseID=2336564')
 
     #get the button for case records and click
-    time.sleep(1)
+    time.sleep(.5)
     caseRecordsLink = driver.find_element(By.XPATH, "//div[@id='divOption1']/a[contains(@class, 'ssSearchHyperlink')]")
     caseRecordsLink.click()
 
-    time.sleep(1)
+    time.sleep(.5)
 
     #click date filed button
     dateFiledButton = driver.find_element(By.ID, "DateFiled")
     dateFiledButton.click()
-    time.sleep(1)
+    time.sleep(.5)
 
     #enter the current date to the date filed fields
     today = datetime.date.today()
@@ -42,31 +53,68 @@ def main():
     searchButton = driver.find_element(By.ID, "SearchSubmit")
     searchButton.click()
 
-    tables = driver.find_elements(By.TAG_NAME, 'table')
 
+    year = today.strftime("%Y")
 
-    # Check if there are at least four tables
-    if len(tables) >= 4:
-        # Select the fourth table
-        seventh_table = tables[6]
+    links = driver.find_elements(By.PARTIAL_LINK_TEXT, year)
+    total_links = len(links)
+    index = 0  # Start with the first link
 
-        # Find all rows in the fourth table
-        rows = seventh_table.find_elements(By.TAG_NAME, 'tr')
-        print("Number of rows found:", len(rows))
+    # store information about each client 
+    cases = []
 
-        # Iterate through each row
-        for row in rows[2:]:
-            # Find the first 'td' element in this row
-            first_td = row.find_element(By.TAG_NAME, 'td')
+    # go through each page and 
+    while index < total_links:
+        # Re-find all elements to avoid stale element reference issues
+        links = driver.find_elements(By.PARTIAL_LINK_TEXT, "2023")
+
+        # Click the link at the current index
+        links[index].click()
+
+        # Wait for the page to load or for any other necessary action
+        time.sleep(.2)
         
-            # Find the 'a' tag within this 'td' and get its text
-            links = first_td.find_elements(By.TAG_NAME, 'a')  # Use find_elements (plural)
+        if driver.find_element(By.ID, "PIr01").text == "Defendant":
+            nameD = driver.find_element(By.ID, "PIr11").text
+        else: 
+            nameD = driver.find_element(By.ID, "PIr12").text
 
-            if links:
-                link_text = links[0].text  # Get text of the first link, if it exists
-                print(link_text)
+        cases.append(Case(
+            name=nameD,
+            address="123 Main St",
+            charge="Charge Details",
+            case_number="001-XXXX-2023",
+            attorney_present=True
+        ))  
+        
+        print(nameD)
+        
+        # If the link opens in the same tab and you need to go back to the original page
+        driver.back()
+        # Wait for the original page to load again
+        time.sleep(.2)
+        # Increment the index to click the next link in the next iteration
+        index += 1
 
+    # Convert the list of Case instances to a DataFrame
+    df = pd.DataFrame([case.__dict__ for case in cases])
 
+    # Export the DataFrame to an Excel file
+    fileName = "CaseRecords" + today.strftime("%m-%d-%Y") + ".xlsx"
+    df.to_excel(fileName, index=False, engine='openpyxl')  
+
+    # Change columns width
+    workbook = load_workbook(filename=fileName)
+    sheet = workbook.active
+    sheet.column_dimensions['A'].width = 33
+    sheet.column_dimensions['B'].width = 40
+    sheet.column_dimensions['C'].width = 56
+    sheet.column_dimensions['D'].width = 25
+    sheet.column_dimensions['E'].width = 10
+
+    # Output datapath to terminal
+    excel_file_path = os.path.abspath(fileName)
+    print(f"The Excel file is saved at: {excel_file_path}")
 
     time.sleep(10)
     driver.quit()

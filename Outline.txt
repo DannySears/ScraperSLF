@@ -1,1 +1,10 @@
 start at database website
+
+name address charge 
+
+what you need chrome driver, pandas openpyxl
+
+pip install selenium
+pip install webdriver-manager
+pip install pandas
+pip install openpyxl
