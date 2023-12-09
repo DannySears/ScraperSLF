@@ -24,10 +24,23 @@ def main():
 
     #boot driver to home page
     driver = webdriver.Chrome()
-    driver.get('https://cijspub.co.collin.tx.us/PublicAccess/CaseDetail.aspx?CaseID=2336564')
+    driver.get('https://cijspub.co.collin.tx.us/SecurePA/Login.aspx?ReturnUrl=%2FSecurePA%2Fdefault.aspx')
 
     #get the button for case records and click
     time.sleep(.5)
+
+    userName = 'ssears'
+    password = 'ssears'
+
+    #enter user and password
+    userNameField = driver.find_element(By.ID, "UserName")
+    userNameField.send_keys(userName)
+    passwordField = driver.find_element(By.ID, "Password")
+    passwordField.send_keys(password)
+    signOnButton = driver.find_element(By.NAME, 'SignOn')
+    signOnButton.click()
+    
+    #click case records
     caseRecordsLink = driver.find_element(By.XPATH, "//div[@id='divOption1']/a[contains(@class, 'ssSearchHyperlink')]")
     caseRecordsLink.click()
 
@@ -87,7 +100,6 @@ def main():
             attorney_present=True
         ))  
         
-        print(nameD)
         
         # If the link opens in the same tab and you need to go back to the original page
         driver.back()
