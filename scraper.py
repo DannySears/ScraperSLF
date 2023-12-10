@@ -79,7 +79,10 @@ def main():
     # go through each page and 
     while index < total_links:
         # Re-find all elements to avoid stale element reference issues
-        links = driver.find_elements(By.PARTIAL_LINK_TEXT, "2023")
+        links = driver.find_elements(By.PARTIAL_LINK_TEXT, year)
+
+        # Find case number
+        caseNumb = links[index].text
 
         # Click the link at the current index
         links[index].click()
@@ -87,17 +90,50 @@ def main():
         # Wait for the page to load or for any other necessary action
         time.sleep(.2)
         
-        if driver.find_element(By.ID, "PIr01").text == "Defendant":
-            nameD = driver.find_element(By.ID, "PIr11").text
-        else: 
-            nameD = driver.find_element(By.ID, "PIr12").text
+        try:
+            # Check if the defendant's name is under "PIr11" or "PIr12"
+            if driver.find_element(By.ID, "PIr01").text == "Defendant":
+                nameD_element = driver.find_element(By.ID, "PIr11")
+            else:
+                nameD_element = driver.find_element(By.ID, "PIr12")
+
+            nameD = nameD_element.text
+
+            # Navigate to the address element
+            # The address is in the 'td' element following the 'th' element for the defendant
+            addressD_element = nameD_element.find_element(By.XPATH, "ancestor::tr/following-sibling::tr[1]/td")
+            addressD = addressD_element.text
+            addressD = addressD.split("DL:")[0].strip()
+            addressD = addressD.split("SID:")[0].strip()
+
+            #find charge information
+            charge_table = driver.find_element(By.XPATH,  "//th[contains(text(), 'Charges:')]")
+            charge_element = charge_table.find_element(By.XPATH, "following::tr[1]/td[2]")
+            chargeD = charge_element.text
+
+            #Find if attorney is present
+            
+            # Get the page source
+            page_source = driver.page_source
+
+            # Check if 'Pro Se' is in the page source
+            attorney_presentD = "Pro Se" not in page_source
+
+            #print("Name:", nameD)
+            #print("Address:", addressD)
+            #print("Case number", caseNumb)
+            #print("Charge", chargeD)
+            #print("Attorney present", attorney_presentD)
+
+        except Exception as e:
+            print("An error occurred:", e)
 
         cases.append(Case(
             name=nameD,
-            address="123 Main St",
-            charge="Charge Details",
-            case_number="001-XXXX-2023",
-            attorney_present=True
+            address=addressD,
+            charge=chargeD,
+            case_number=caseNumb,
+            attorney_present=attorney_presentD
         ))  
         
         
