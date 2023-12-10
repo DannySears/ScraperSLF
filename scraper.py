@@ -54,7 +54,7 @@ def main():
     #enter the current date to the date filed fields
     today = datetime.date.today()
 
-    today = today - datetime.timedelta(days=1)
+    today = today - datetime.timedelta(days=2)
     d1 = today.strftime("%m/%d/%Y")
 
     datefiledAfterField = driver.find_element(By.ID, "DateFiledOnAfter")
@@ -119,6 +119,27 @@ def main():
             # Check if 'Pro Se' is in the page source
             attorney_presentD = "Pro Se" not in page_source
 
+            parts = addressD.split()
+
+            # Assuming the last two parts are state and zip code
+            if len(parts) >= 2:
+                state = parts[-2]
+                zip_code = parts[-1]
+
+                # The rest of the parts are the street address and city
+                street_city = ' '.join(parts[:-2])
+            else:
+                # Fallback if the address doesn't have enough parts
+                state = ''
+                zip_code = ''
+                street_city = addressD
+
+            # Address tests
+            print("Street Address:", street_city)
+            print("State:", state)
+            print("Zip Code:", zip_code)
+
+            # Full output tests
             #print("Name:", nameD)
             #print("Address:", addressD)
             #print("Case number", caseNumb)
