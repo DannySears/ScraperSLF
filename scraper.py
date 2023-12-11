@@ -10,11 +10,15 @@ import datetime
 import pandas as pd
 from dataclasses import dataclass
 from openpyxl import load_workbook
+from bs4 import BeautifulSoup
 
 @dataclass
 class Case:
     name: str
     address: str
+    city: str
+    state: str
+    zip: str
     charge: str
     case_number: str
     attorney_present: bool  # True if attorney is present, False otherwise
@@ -22,6 +26,14 @@ class Case:
 def main():
     driver_path = os.path.join(os.path.dirname(__file__), 'drivers', 'chromedriver')
 
+    while True:
+        user_input = input("Desired access date in format mm/dd/yyyy: ")
+        if validate_date(user_input):
+            print("Valid date entered.")
+            break
+        else:
+            print("Error: Date format should be mm/dd/yyyy. Please enter a new date.")
+    
     #boot driver to home page
     driver = webdriver.Chrome()
     driver.get('https://cijspub.co.collin.tx.us/SecurePA/Login.aspx?ReturnUrl=%2FSecurePA%2Fdefault.aspx')
@@ -54,13 +66,14 @@ def main():
     #enter the current date to the date filed fields
     today = datetime.date.today()
 
-    today = today - datetime.timedelta(days=2)
+    #old date fetcher
+    today = today - datetime.timedelta(days=3)
     d1 = today.strftime("%m/%d/%Y")
 
     datefiledAfterField = driver.find_element(By.ID, "DateFiledOnAfter")
-    datefiledAfterField.send_keys(d1)
+    datefiledAfterField.send_keys(user_input)
     datefiledBeforeField = driver.find_element(By.ID, "DateFiledOnBefore")
-    datefiledBeforeField.send_keys(d1)
+    datefiledBeforeField.send_keys(user_input)
 
     #find and click search button
     searchButton = driver.find_element(By.ID, "SearchSubmit")
@@ -68,8 +81,11 @@ def main():
 
 
     year = today.strftime("%Y")
+    parsed_date = datetime.datetime.strptime(user_input, '%m/%d/%Y')
+    year_input = parsed_date.year
+    year_input = str(year_input)
 
-    links = driver.find_elements(By.PARTIAL_LINK_TEXT, year)
+    links = driver.find_elements(By.PARTIAL_LINK_TEXT, year_input)
     total_links = len(links)
     index = 0  # Start with the first link
 
@@ -99,10 +115,28 @@ def main():
 
             nameD = nameD_element.text
 
+            
+
             # Navigate to the address element
             # The address is in the 'td' element following the 'th' element for the defendant
             addressD_element = nameD_element.find_element(By.XPATH, "ancestor::tr/following-sibling::tr[1]/td")
             addressD = addressD_element.text
+
+            td_html = addressD_element.get_attribute('innerHTML')
+
+            soup = BeautifulSoup(td_html, 'html.parser')
+            
+            # Replace <br /> tags with newline characters
+            for br in soup.find_all("br"):
+                br.replace_with("\n")
+
+            # Get the text and split by newlines
+            sections = soup.get_text().split('\n')
+
+            # Clean up special characters from each section
+            cleaned_sections = [section.strip().encode('ascii', 'ignore').decode('ascii') for section in sections]
+
+            addressRaw = addressD
             addressD = addressD.split("DL:")[0].strip()
             addressD = addressD.split("SID:")[0].strip()
 
@@ -111,7 +145,6 @@ def main():
             charge_element = charge_table.find_element(By.XPATH, "following::tr[1]/td[2]")
             chargeD = charge_element.text
 
-            #Find if attorney is present
             
             # Get the page source
             page_source = driver.page_source
@@ -134,8 +167,20 @@ def main():
                 zip_code = ''
                 street_city = addressD
 
+            street_city = cleaned_sections[0]
+
+            apt_indicators = {"APT", "UNIT", "SUITE", "BLDG", "#"}
+
+            if contains_apt_indicator(addressRaw, apt_indicators):
+                city = cleaned_sections[2].split(",")[0].strip()
+                street_city = street_city + " " + cleaned_sections[1].split(",")[0].strip()
+            else: 
+                city = cleaned_sections[1].split(",")[0].strip()
+
             # Address tests
+            print(len(cleaned_sections))
             print("Street Address:", street_city)
+            print("City: ", city)
             print("State:", state)
             print("Zip Code:", zip_code)
 
@@ -151,7 +196,10 @@ def main():
 
         cases.append(Case(
             name=nameD,
-            address=addressD,
+            address=street_city,
+            city=city,
+            state=state,
+            zip=zip_code,
             charge=chargeD,
             case_number=caseNumb,
             attorney_present=attorney_presentD
@@ -168,18 +216,26 @@ def main():
     # Convert the list of Case instances to a DataFrame
     df = pd.DataFrame([case.__dict__ for case in cases])
 
+    formatted_date = user_input.replace("/", "-")
+
     # Export the DataFrame to an Excel file
-    fileName = "CaseRecords" + today.strftime("%m-%d-%Y") + ".xlsx"
-    df.to_excel(fileName, index=False, engine='openpyxl')  
+    fileName = "CaseRecords" + formatted_date + ".xlsx"
+    try:
+        df.to_excel(fileName, index=False, engine='openpyxl')
+    except Exception as e:
+        print(f"An error occurred while saving the file: {e}")
 
     # Change columns width
     workbook = load_workbook(fileName)
     sheet = workbook.active
     sheet.column_dimensions['A'].width = 33
     sheet.column_dimensions['B'].width = 40
-    sheet.column_dimensions['C'].width = 56
-    sheet.column_dimensions['D'].width = 25
-    sheet.column_dimensions['E'].width = 10
+    sheet.column_dimensions['C'].width = 20
+    sheet.column_dimensions['D'].width = 6
+    sheet.column_dimensions['E'].width = 8
+    sheet.column_dimensions['F'].width = 50
+    sheet.column_dimensions['G'].width = 15
+    sheet.column_dimensions['H'].width = 8
     workbook.save(fileName)
 
     # Output datapath to terminal
@@ -188,6 +244,20 @@ def main():
 
     time.sleep(10)
     driver.quit()
+
+def contains_apt_indicator(address, apt_indicators):
+    for indicator in apt_indicators:
+        if indicator in address.upper():
+            return True
+    return False
+
+def validate_date(date_string):
+    try:
+        datetime.datetime.strptime(date_string, '%m/%d/%Y')
+        return True
+    except ValueError:
+        return False
+
 
 if __name__ == '__main__':
     main()

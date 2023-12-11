@@ -1,0 +1,8 @@
+what you need chromedriver (https://chromedriver.chromium.org/downloads)
+python (https://www.python.org/downloads/)
+
+pip install selenium
+pip install webdriver-manager
+pip install pandas
+pip install openpyxl
+pip install bs4
