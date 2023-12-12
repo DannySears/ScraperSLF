@@ -1,6 +1,8 @@
+1: 
 what you need chromedriver (https://chromedriver.chromium.org/downloads)
 python (https://www.python.org/downloads/)
 
+2: Run these commands in command prompt
 pip install selenium
 pip install webdriver-manager
 pip install pandas
