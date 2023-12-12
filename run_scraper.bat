@@ -1,4 +1,4 @@
 @echo off
-cd C:\Users\danny\Desktop\GitHub\ScraperSLF
+cd C:\Users\Steve\Desktop\scaprerSLF
 python scraper.py
 pause
