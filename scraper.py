@@ -178,11 +178,11 @@ def main():
                 city = cleaned_sections[1].split(",")[0].strip()
 
             # Address tests
-            print(len(cleaned_sections))
-            print("Street Address:", street_city)
-            print("City: ", city)
-            print("State:", state)
-            print("Zip Code:", zip_code)
+            #print(len(cleaned_sections))
+            #print("Street Address:", street_city)
+            #print("City: ", city)
+            #print("State:", state)
+            #print("Zip Code:", zip_code)
 
             # Full output tests
             #print("Name:", nameD)
